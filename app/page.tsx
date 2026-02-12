@@ -217,6 +217,7 @@ export default function Home() {
           mimeType: data.mimeType || "image/png",
           text: data.text || null,
         });
+        setQuery("");
         try {
           const saveRes = await fetch("/api/gallery", {
             method: "POST",
@@ -225,7 +226,7 @@ export default function Home() {
             body: JSON.stringify({
               image: data.image,
               mimeType: data.mimeType || "image/png",
-              text: data.text ?? null,
+              text: query.trim() || null,
             }),
           });
           if (saveRes.ok) {
