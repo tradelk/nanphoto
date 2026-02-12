@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { list, put } from "@vercel/blob";
 import { isAuthenticated } from "@/lib/auth";
+import { getGalleryItems, addGalleryItem } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const PREFIX = "nanphoto-gallery/";
-const INDEX_PATH = "nanphoto-gallery/index.json";
 const MAX_ITEMS = 40;
 
 export type GalleryItem = {
@@ -16,23 +14,10 @@ export type GalleryItem = {
   text: string | null;
 };
 
-async function getIndexUrl(): Promise<string | null> {
-  const { blobs } = await list({ prefix: PREFIX });
-  const indexBlob = blobs.find((b) => b.pathname === INDEX_PATH || b.pathname?.endsWith("index.json"));
-  return indexBlob?.url ?? null;
-}
-
-async function getGalleryItems(): Promise<GalleryItem[]> {
-  const url = await getIndexUrl();
-  if (!url) return [];
-  try {
-    const res = await fetch(url, { next: { revalidate: 0 } });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return Array.isArray(data?.items) ? data.items : [];
-  } catch {
-    return [];
-  }
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get("host") || "";
+  const proto = request.headers.get("x-forwarded-proto") || "https";
+  return `${proto}://${host}`;
 }
 
 export async function GET(request: NextRequest) {
@@ -40,7 +25,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json([], { status: 401 });
   }
   try {
-    const items = await getGalleryItems();
+    const rows = await getGalleryItems();
+    const base = getBaseUrl(request);
+    const items: GalleryItem[] = rows.map((r) => ({
+      id: r.id,
+      url: `${base}/api/gallery/${r.id}/image`,
+      mimeType: r.mime_type,
+      text: r.text,
+    }));
     return NextResponse.json(items);
   } catch (err) {
     return NextResponse.json([], { status: 200 });
@@ -51,9 +43,9 @@ export async function POST(request: NextRequest) {
   if (!isAuthenticated(request)) {
     return NextResponse.json({ error: "Требуется авторизация" }, { status: 401 });
   }
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!process.env.DATABASE_URL) {
     return NextResponse.json(
-      { error: "Хранилище галереи не настроено (BLOB_READ_WRITE_TOKEN)." },
+      { error: "База данных не настроена (DATABASE_URL). Подключите Neon в Netlify." },
       { status: 503 }
     );
   }
@@ -69,31 +61,19 @@ export async function POST(request: NextRequest) {
     }
     const id = `img-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     const contentType = mimeType || "image/png";
-    const buffer = Buffer.from(image, "base64");
 
-    const blob = await put(`${PREFIX}${id}.png`, buffer, {
-      access: "public",
-      contentType,
-      addRandomSuffix: false,
-    });
+    await addGalleryItem(id, image, contentType, text ?? null);
 
-    const newItem: GalleryItem = {
-      id,
-      url: blob.url,
-      mimeType: contentType,
-      text: text ?? null,
-    };
+    const rows = await getGalleryItems();
+    const base = getBaseUrl(request);
+    const items: GalleryItem[] = rows.map((r) => ({
+      id: r.id,
+      url: `${base}/api/gallery/${r.id}/image`,
+      mimeType: r.mime_type,
+      text: r.text,
+    }));
 
-    const items = await getGalleryItems();
-    const updated = [newItem, ...items].slice(0, MAX_ITEMS);
-
-    await put(INDEX_PATH, JSON.stringify({ items: updated }), {
-      access: "public",
-      contentType: "application/json",
-      addRandomSuffix: false,
-    });
-
-    return NextResponse.json(updated);
+    return NextResponse.json(items);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Ошибка сохранения";
     return NextResponse.json({ error: message }, { status: 500 });

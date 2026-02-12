@@ -322,6 +322,7 @@ export default function Home() {
               borderRadius: "var(--radius)",
               border: "1px solid var(--border)",
               background: "var(--bg)",
+              color: theme === "banana" || theme === "night" ? "#fff" : "var(--text)",
               fontFamily: "inherit",
               fontSize: "1rem",
               resize: "vertical",

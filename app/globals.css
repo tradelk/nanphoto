@@ -41,6 +41,16 @@
   --font-sans: "Nunito", system-ui, sans-serif;
 }
 
+/* белый текст в поле ввода для тёмных тем */
+[data-theme="banana"] textarea,
+[data-theme="night"] textarea {
+  color: #fff;
+}
+[data-theme="banana"] textarea::placeholder,
+[data-theme="night"] textarea::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

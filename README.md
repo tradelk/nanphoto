@@ -23,15 +23,15 @@ npm run dev
 4. В **Site configuration** → **Environment variables** добавьте:
    - **Key:** `GEMINI_API_KEY`  
    - **Value:** ваш API‑ключ Gemini  
-   (значение скрыто и не попадёт в репозиторий.)
+   - **Key:** `DATABASE_URL`  
+   - **Value:** строка подключения к Neon (см. ниже)  
 5. Нажмите **Deploy site**.
 
-**Галерея на Netlify:** сохранение до 40 картинок на сервере (Vercel Blob) на Netlify не поддерживается. Генерация и просмотр результата работают; блок «Последние картинки» и страница «Галерея» будут пустыми, пока не настроите своё хранилище.
+**Галерея (до 40 картинок):** в Netlify откройте **Integrations** → найдите **Neon** и подключите (или создайте БД на [neon.tech](https://neon.tech)). Переменная `DATABASE_URL` подтянется автоматически. Картинки сохраняются в таблице Postgres.
 
 ### Vercel
 
 1. Подключите репозиторий к [Vercel](https://vercel.com).
-2. В **Environment Variables** задайте `GEMINI_API_KEY`.
-3. **Галерея (опционально):** Vercel → **Storage** → **Blob** → создайте store, тогда появится `BLOB_READ_WRITE_TOKEN` и до 40 картинок будут храниться на сервере.
+2. В **Environment Variables** задайте `GEMINI_API_KEY` и `DATABASE_URL` (Neon connection string), чтобы работала галерея.
 
 Ключи хранятся только в переменных окружения, в коде их нет.
