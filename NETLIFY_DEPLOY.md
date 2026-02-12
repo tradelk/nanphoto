@@ -93,6 +93,7 @@
 
 - **Ошибка сборки:** откройте **Deploys** → последний деплой → **Deploy log** и посмотрите, на каком шаге упало (часто это отсутствие `GEMINI_API_KEY`).
 - **На сайте «Требуется авторизация» или пустая страница:** проверьте, что в Netlify в **Site configuration** → **Environment variables** есть `GEMINI_API_KEY` и при необходимости `NANPHOTO_PASSWORD`, затем сделайте **Trigger deploy** → **Deploy site** заново.
+- **503 на POST /api/gallery (картинка не попадает в галерею):** это значит, что **база данных не подключена**. Добавьте переменную **`DATABASE_URL`** (см. шаг 5 выше — Neon или вручную connection string с [neon.tech](https://neon.tech)), сохраните и сделайте **Trigger deploy** → **Deploy site**. Без `DATABASE_URL` галерея не сохраняет картинки.
 - **Свой домен:** в Netlify: **Domain management** → **Add custom domain** и следуйте подсказкам.
 
 ---

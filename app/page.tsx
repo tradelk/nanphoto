@@ -1,7 +1,43 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuthRequired } from "./components/AuthGuard";
+
+function useResultImageBlobUrl(
+  resultImage: { image: string; mimeType: string } | null
+): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  const prevRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!resultImage) {
+      if (prevRef.current) {
+        URL.revokeObjectURL(prevRef.current);
+        prevRef.current = null;
+      }
+      setUrl(null);
+      return;
+    }
+    if (prevRef.current) {
+      URL.revokeObjectURL(prevRef.current);
+      prevRef.current = null;
+    }
+    const binary = atob(resultImage.image);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: resultImage.mimeType });
+    const blobUrl = URL.createObjectURL(blob);
+    prevRef.current = blobUrl;
+    setUrl(blobUrl);
+    return () => {
+      if (prevRef.current) {
+        URL.revokeObjectURL(prevRef.current);
+        prevRef.current = null;
+      }
+      setUrl(null);
+    };
+  }, [resultImage]);
+  return url;
+}
 
 const THEMES = [
   { id: "banana", label: "Банановый" },
@@ -125,6 +161,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { authRequired } = useAuthRequired();
+  const resultImageBlobUrl = useResultImageBlobUrl(resultImage);
   const selectedCount = OPTIMIZER_CATEGORIES.reduce(
     (n, cat) => n + cat.options.filter((o) => selected.has(o.id)).length,
     0
@@ -194,6 +231,9 @@ export default function Home() {
           if (saveRes.ok) {
             const updated = await saveRes.json();
             setGallery(Array.isArray(updated) ? updated : []);
+          } else if (saveRes.status === 503) {
+            const json = await saveRes.json().catch(() => ({}));
+            console.warn("Галерея: база не настроена.", json?.error || "Добавьте DATABASE_URL в Netlify.");
           }
         } catch {
           /* галерея опциональна */
@@ -452,12 +492,23 @@ export default function Home() {
           }}
         >
           <h2 style={{ fontWeight: 600, marginBottom: "0.75rem", color: "var(--text)" }}>Результат</h2>
+          {resultImage.text && (
+            <p style={{ marginBottom: "0.75rem", color: "var(--text-soft)", fontSize: "0.9rem" }}>
+              {resultImage.text}
+            </p>
+          )}
           <a
-            href={`data:${resultImage.mimeType};base64,${resultImage.image}`}
+            href={resultImageBlobUrl ?? "#"}
             target="_blank"
             rel="noopener noreferrer"
             title="Открыть в полном размере"
             style={{ display: "block", cursor: "pointer" }}
+            onClick={(e) => {
+              if (resultImageBlobUrl) {
+                e.preventDefault();
+                window.open(resultImageBlobUrl, "_blank", "noopener,noreferrer");
+              } else if (resultImage) e.preventDefault();
+            }}
           >
             <img
               src={`data:${resultImage.mimeType};base64,${resultImage.image}`}
@@ -469,11 +520,6 @@ export default function Home() {
               }}
             />
           </a>
-          {resultImage.text && (
-            <p style={{ marginTop: "0.75rem", color: "var(--text-soft)", fontSize: "0.9rem" }}>
-              {resultImage.text}
-            </p>
-          )}
         </section>
       )}
 
