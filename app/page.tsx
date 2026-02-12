@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuthRequired } from "./components/AuthGuard";
 
 const THEMES = [
   { id: "banana", label: "Банановый" },
@@ -123,6 +124,7 @@ export default function Home() {
   const [optimizerOpen, setOptimizerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { authRequired } = useAuthRequired();
   const selectedCount = OPTIMIZER_CATEGORIES.reduce(
     (n, cat) => n + cat.options.filter((o) => selected.has(o.id)).length,
     0
@@ -137,7 +139,7 @@ export default function Home() {
   }, [theme]);
 
   useEffect(() => {
-    fetch("/api/gallery")
+    fetch("/api/gallery", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setGallery(Array.isArray(data) ? data : []))
       .catch(() => setGallery([]));
@@ -161,6 +163,7 @@ export default function Home() {
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: query.trim(),
@@ -180,6 +183,7 @@ export default function Home() {
         try {
           const saveRes = await fetch("/api/gallery", {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               image: data.image,
@@ -219,7 +223,28 @@ export default function Home() {
       />
 
       <header style={{ textAlign: "center", width: "100%", maxWidth: "40rem" }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.35rem", marginBottom: "0.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.35rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+          {authRequired && (
+            <button
+              type="button"
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+                window.location.reload();
+              }}
+              style={{
+                padding: "0.35rem 0.65rem",
+                borderRadius: "var(--radius)",
+                border: "1px solid var(--border)",
+                background: "transparent",
+                color: "var(--text-soft)",
+                fontFamily: "inherit",
+                fontSize: "0.8rem",
+                cursor: "pointer",
+              }}
+            >
+              Выйти
+            </button>
+          )}
           {THEMES.map((t) => {
             const isSelected = theme === t.id;
             const isBanana = theme === "banana";

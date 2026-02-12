@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAuthRequired } from "../components/AuthGuard";
 
 type GalleryItem = {
   id: string;
@@ -11,11 +12,12 @@ type GalleryItem = {
 };
 
 export default function GalleryPage() {
+  const { authRequired } = useAuthRequired();
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/gallery")
+    fetch("/api/gallery", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => {
         setItems(Array.isArray(data) ? data : []);
@@ -41,6 +43,29 @@ export default function GalleryPage() {
       />
 
       <header style={{ textAlign: "center", width: "100%", maxWidth: "56rem" }}>
+        {authRequired && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
+            <button
+              type="button"
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+                window.location.href = "/";
+              }}
+              style={{
+                padding: "0.35rem 0.65rem",
+                borderRadius: "var(--radius)",
+                border: "1px solid var(--border)",
+                background: "transparent",
+                color: "var(--text-soft)",
+                fontFamily: "inherit",
+                fontSize: "0.8rem",
+                cursor: "pointer",
+              }}
+            >
+              Выйти
+            </button>
+          </div>
+        )}
         <h1
           style={{
             fontSize: "clamp(1.75rem, 4vw, 2.25rem)",

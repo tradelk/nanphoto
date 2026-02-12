@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthenticated } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,6 +9,9 @@ const GEMINI_MODEL = "gemini-2.5-flash-image";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export async function POST(request: NextRequest) {
+  if (!isAuthenticated(request)) {
+    return NextResponse.json({ error: "Требуется авторизация" }, { status: 401 });
+  }
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(

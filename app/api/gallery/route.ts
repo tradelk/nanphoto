@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { list, put } from "@vercel/blob";
+import { isAuthenticated } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +35,10 @@ async function getGalleryItems(): Promise<GalleryItem[]> {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!isAuthenticated(request)) {
+    return NextResponse.json([], { status: 401 });
+  }
   try {
     const items = await getGalleryItems();
     return NextResponse.json(items);
@@ -44,6 +48,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isAuthenticated(request)) {
+    return NextResponse.json({ error: "Требуется авторизация" }, { status: 401 });
+  }
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return NextResponse.json(
       { error: "Хранилище галереи не настроено (BLOB_READ_WRITE_TOKEN)." },
