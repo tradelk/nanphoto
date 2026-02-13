@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { useAuthRequired } from "../components/AuthGuard";
+import AppNav from "../components/AppNav";
 
 function useBlobUrl(data: { image: string; mimeType: string } | null): string | null {
   const [url, setUrl] = useState<string | null>(null);
@@ -234,47 +234,15 @@ export default function ThermalPage() {
         rel="stylesheet"
       />
 
+      <AppNav authRequired={authRequired} currentPage="thermal" linkColor={THERMAL_COLORS.accent} />
+
       <header style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-        {authRequired && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
-            <button
-              type="button"
-              onClick={async () => {
-                await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-                window.location.href = "/";
-              }}
-              style={{
-                padding: "0.35rem 0.65rem",
-                borderRadius: "1rem",
-                border: `1px solid ${THERMAL_COLORS.border}`,
-                background: "transparent",
-                color: THERMAL_COLORS.textSoft,
-                fontFamily: "inherit",
-                fontSize: "0.8rem",
-                cursor: "pointer",
-              }}
-            >
-              Выйти
-            </button>
-          </div>
-        )}
         <h1 style={{ fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 700, color: THERMAL_COLORS.text }}>
           Термопринтер: конвертер в линейное искусство
         </h1>
         <p style={{ color: THERMAL_COLORS.textSoft, marginTop: "0.25rem", fontSize: "0.95rem" }}>
           Загрузите картинку → выберите опции → получите ч/б для печати
         </p>
-        <Link
-          href="/"
-          style={{
-            display: "inline-block",
-            marginTop: "0.75rem",
-            color: THERMAL_COLORS.accent,
-            fontSize: "0.95rem",
-          }}
-        >
-          ← На главную
-        </Link>
       </header>
 
       <section

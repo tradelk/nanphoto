@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuthRequired } from "../components/AuthGuard";
+import AppNav from "../components/AppNav";
 
 type GalleryItem = {
   id: string;
@@ -50,30 +51,9 @@ export default function GalleryPage() {
         rel="stylesheet"
       />
 
+      <AppNav authRequired={authRequired} currentPage="gallery" linkColor="var(--accent-strong)" />
+
       <header style={{ textAlign: "center", width: "100%", maxWidth: "56rem" }}>
-        {authRequired && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
-            <button
-              type="button"
-              onClick={async () => {
-                await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-                window.location.href = "/";
-              }}
-              style={{
-                padding: "0.35rem 0.65rem",
-                borderRadius: "var(--radius)",
-                border: "1px solid var(--border)",
-                background: "transparent",
-                color: "var(--text-soft)",
-                fontFamily: "inherit",
-                fontSize: "0.8rem",
-                cursor: "pointer",
-              }}
-            >
-              Выйти
-            </button>
-          </div>
-        )}
         <h1
           style={{
             fontSize: "clamp(1.75rem, 4vw, 2.25rem)",
@@ -87,17 +67,6 @@ export default function GalleryPage() {
         <p style={{ color: "var(--text-soft)", marginTop: "0.25rem" }}>
           Последние 100 сгенерированных картинок
         </p>
-        <Link
-          href="/"
-          style={{
-            display: "inline-block",
-            marginTop: "0.75rem",
-            color: "var(--accent-strong)",
-            fontSize: "0.95rem",
-          }}
-        >
-          ← На главную
-        </Link>
       </header>
 
       {loading ? (

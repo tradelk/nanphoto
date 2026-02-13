@@ -79,19 +79,25 @@ export async function POST(request: NextRequest) {
         "concept-art": "concept art style",
         "oil-painting": "oil painting style",
       };
-      const fullPrompt = [
-        prompt,
-        styleHint[style] || "",
-        ratioHint[aspectRatio] || "",
-      ]
-        .filter(Boolean)
-        .join(". ");
+      const styleStr = styleHint[style] || "";
+      const ratioStr = ratioHint[aspectRatio] || "";
+      const extras = [styleStr, ratioStr].filter(Boolean);
+      const fullPrompt =
+        extras.length > 0
+          ? `Уточнения: ${extras.join(", ")}.\n\nОписание изображения: ${prompt}\n\nСгенерируй изображение по этому описанию.`
+          : `Сгенерируй изображение по описанию: ${prompt}`;
       const model = userModel === "imagen-4" ? "gemini-2.5-flash-image" : defaultModel;
       const result = await callGemini(apiKey, model, {
         contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
         generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
       });
-      if (!result.imageBase64) return NextResponse.json({ error: "Модель не вернула изображение." }, { status: 500 });
+      if (!result.imageBase64) {
+        const hint = result.text ? ` Ответ модели: ${result.text.slice(0, 200)}` : "";
+        return NextResponse.json(
+          { error: `Модель не вернула изображение.${hint}` },
+          { status: 500 }
+        );
+      }
       return NextResponse.json({ image: result.imageBase64, mimeType: result.mimeType, text: result.text });
     }
 

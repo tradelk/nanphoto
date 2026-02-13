@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuthRequired } from "./components/AuthGuard";
+import AppNav from "./components/AppNav";
 
 function useResultImageBlobUrl(
   resultImage: { image: string; mimeType: string } | null
@@ -263,29 +264,10 @@ export default function Home() {
         rel="stylesheet"
       />
 
+      <AppNav authRequired={authRequired} currentPage="main" linkColor="var(--accent-strong)" />
+
       <header style={{ textAlign: "center", width: "100%", maxWidth: "40rem" }}>
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.35rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
-          {authRequired && (
-            <button
-              type="button"
-              onClick={async () => {
-                await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-                window.location.reload();
-              }}
-              style={{
-                padding: "0.35rem 0.65rem",
-                borderRadius: "var(--radius)",
-                border: "1px solid var(--border)",
-                background: "transparent",
-                color: "var(--text-soft)",
-                fontFamily: "inherit",
-                fontSize: "0.8rem",
-                cursor: "pointer",
-              }}
-            >
-              Выйти
-            </button>
-          )}
           {THEMES.map((t) => {
             const isSelected = theme === t.id;
             const isBanana = theme === "banana";
@@ -335,17 +317,6 @@ export default function Home() {
         </h1>
         <p style={{ color: "var(--text-soft)", marginTop: "0.25rem" }}>
           Описание + уточнения → картинка от Nano Banana
-        </p>
-        <p style={{ marginTop: "0.5rem", fontSize: "0.9rem" }}>
-          <a href="/pro" style={{ color: "var(--accent-strong)", marginRight: "1rem" }}>
-            Pro
-          </a>
-          <a href="/thermal" style={{ color: "var(--accent-strong)", marginRight: "1rem" }}>
-            Термопринтер
-          </a>
-          <a href="/gallery" style={{ color: "var(--accent-strong)" }}>
-            Галерея
-          </a>
         </p>
       </header>
 

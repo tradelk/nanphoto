@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuthRequired } from "../components/AuthGuard";
+import AppNav from "../components/AppNav";
 
 const PRO_STYLES = {
   bg: "#f8f9fc",
@@ -124,16 +125,55 @@ export default function ProPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(await buildBody()),
       });
-      const data = await res.json();
+      const raw = await res.text();
+      let data: { image?: string; mimeType?: string; error?: string };
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        if (res.status === 413 || !raw) {
+          throw new Error("Запрос слишком большой (много или крупные картинки). Загрузите меньше изображений или уменьшите их размер.");
+        }
+        throw new Error("Сервер вернул некорректный ответ. Попробуйте позже.");
+      }
       if (!res.ok) throw new Error(data.error || "Ошибка");
       if (!data.image) throw new Error("Нет изображения в ответе");
       setResult({ image: data.image, mimeType: data.mimeType || "image/png" });
+
+      const galleryPrompt = getGalleryPromptLabel();
+      try {
+        const saveRes = await fetch("/api/gallery", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            image: data.image,
+            mimeType: data.mimeType || "image/png",
+            text: galleryPrompt || null,
+          }),
+        });
+        if (!saveRes.ok && saveRes.status === 503) {
+          const json = await saveRes.json().catch(() => ({}));
+          console.warn("Галерея: база не настроена.", json?.error);
+        }
+      } catch {
+        /* сохранение в галерею опционально */
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка запроса");
     } finally {
       setLoading(false);
     }
   };
+
+  function getGalleryPromptLabel(): string {
+    const parts: string[] = [];
+    if (tab === "text-to-image") parts.push(`[Text-to-Image] ${prompt.trim()}`);
+    if (tab === "image-to-image") parts.push(`[Image-to-Image] ${img2imgPrompt.trim()}`);
+    if (tab === "edit") parts.push(`[Edit: ${editPreset}] ${editDetails.trim() || "—"}`);
+    if (tab === "infographic") parts.push(`[Infographic] ${topic.trim()}${metrics.trim() ? ` — ${metrics.trim()}` : ""}`);
+    if (tab === "text-rendering") parts.push(`[Text] "${exactText.trim()}" ${textContext.trim() || ""}`);
+    return parts.join(" ").trim() || "Pro";
+  }
 
   async function buildBody(): Promise<Record<string, unknown>> {
     if (tab === "text-to-image") {
@@ -207,39 +247,15 @@ export default function ProPage() {
     >
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
 
+      <AppNav authRequired={authRequired} currentPage="pro" linkColor={PRO_STYLES.accent} />
+
       <header style={{ marginBottom: "1.5rem" }}>
-        {authRequired && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
-            <button
-              type="button"
-              onClick={async () => {
-                await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-                window.location.href = "/";
-              }}
-              style={{
-                padding: "0.35rem 0.65rem",
-                borderRadius: "0.5rem",
-                border: `1px solid ${PRO_STYLES.border}`,
-                background: "transparent",
-                color: PRO_STYLES.textSoft,
-                fontFamily: "inherit",
-                fontSize: "0.8rem",
-                cursor: "pointer",
-              }}
-            >
-              Выйти
-            </button>
-          </div>
-        )}
         <h1 style={{ fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 700, color: PRO_STYLES.text }}>
           Pro
         </h1>
         <p style={{ color: PRO_STYLES.textSoft, marginTop: "0.25rem", fontSize: "0.9rem" }}>
           Генерация и редактирование изображений
         </p>
-        <Link href="/" style={{ display: "inline-block", marginTop: "0.5rem", color: PRO_STYLES.accent, fontSize: "0.9rem" }}>
-          ← На главную
-        </Link>
       </header>
 
       {/* Tabs */}
