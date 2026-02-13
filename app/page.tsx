@@ -337,6 +337,9 @@ export default function Home() {
           Описание + уточнения → картинка от Nano Banana
         </p>
         <p style={{ marginTop: "0.5rem", fontSize: "0.9rem" }}>
+          <a href="/pro" style={{ color: "var(--accent-strong)", marginRight: "1rem" }}>
+            Pro
+          </a>
           <a href="/thermal" style={{ color: "var(--accent-strong)", marginRight: "1rem" }}>
             Термопринтер
           </a>

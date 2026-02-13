@@ -87,3 +87,10 @@ a {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-strong);
 }
+
+/* Pro page: stack on narrow screens */
+@media (max-width: 900px) {
+  .pro-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
