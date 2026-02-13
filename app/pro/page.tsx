@@ -51,7 +51,7 @@ export default function ProPage() {
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("photorealistic");
   const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [text2imgModel, setText2imgModel] = useState("gemini-2.0-flash-exp");
+  const [text2imgModel, setText2imgModel] = useState("gemini-2.5-flash-image");
 
   // Image-to-Image
   const [refImages, setRefImages] = useState<(File | null)[]>([null, null, null]);
@@ -314,7 +314,7 @@ export default function ProPage() {
                   fontFamily: "inherit",
                 }}
               >
-                <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
+                <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
                 <option value="imagen-4">Imagen 4 (Gemini)</option>
               </select>
               <label style={{ display: "block", fontSize: "0.85rem", color: PRO_STYLES.textSoft, marginBottom: "0.25rem" }}>

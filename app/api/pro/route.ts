@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const mode = body.mode as ProMode;
 
-    const defaultModel = "gemini-2.0-flash-exp";
-    const imageModel = "gemini-2.0-flash-exp";
+    const defaultModel = "gemini-2.5-flash-image";
+    const imageModel = "gemini-2.5-flash-image";
 
     if (mode === "text-to-image") {
       const { prompt, style, aspectRatio, model: userModel } = body;
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
       }
       promptText += ` Style: ${styleStr}. Compress information into visual format, clear typography, data visualization with charts and icons, organized layout, professional design, high readability.`;
       const tools = useGoogleSearch ? [{ googleSearch: {} }] : undefined;
-      const model = "gemini-2.0-flash-exp";
+      const model = "gemini-2.5-flash-image";
       const result = await callGemini(apiKey, model, {
         contents: [{ role: "user", parts: [{ text: promptText }] }],
         generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
