@@ -336,6 +336,14 @@ export default function Home() {
         <p style={{ color: "var(--text-soft)", marginTop: "0.25rem" }}>
           Описание + уточнения → картинка от Nano Banana
         </p>
+        <p style={{ marginTop: "0.5rem", fontSize: "0.9rem" }}>
+          <a href="/thermal" style={{ color: "var(--accent-strong)", marginRight: "1rem" }}>
+            Термопринтер
+          </a>
+          <a href="/gallery" style={{ color: "var(--accent-strong)" }}>
+            Галерея
+          </a>
+        </p>
       </header>
 
       <section
