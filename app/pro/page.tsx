@@ -80,6 +80,18 @@ export default function ProPage() {
   const [textStyle, setTextStyle] = useState("bold");
   const [textContext, setTextContext] = useState("");
 
+  // История (галерея)
+  type GalleryItem = { id: string; url: string; mimeType: string; text: string | null };
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/gallery", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => setGallery(Array.isArray(data) ? data : []))
+      .catch(() => setGallery([]));
+  }, []);
+
   useEffect(() => {
     if (!result) {
       setResultBlobUrl(null);
@@ -140,7 +152,7 @@ export default function ProPage() {
       setResult({ image: data.image, mimeType: data.mimeType || "image/png" });
 
       const galleryPrompt = getGalleryPromptLabel();
-      try {
+        try {
         const saveRes = await fetch("/api/gallery", {
           method: "POST",
           credentials: "include",
@@ -151,7 +163,10 @@ export default function ProPage() {
             text: galleryPrompt || null,
           }),
         });
-        if (!saveRes.ok && saveRes.status === 503) {
+        if (saveRes.ok) {
+          const updated = await saveRes.json();
+          setGallery(Array.isArray(updated) ? updated : []);
+        } else if (saveRes.status === 503) {
           const json = await saveRes.json().catch(() => ({}));
           console.warn("Галерея: база не настроена.", json?.error);
         }
@@ -249,7 +264,7 @@ export default function ProPage() {
 
       <AppNav authRequired={authRequired} currentPage="pro" linkColor={PRO_STYLES.accent} />
 
-      <header style={{ marginBottom: "1.5rem" }}>
+      <header style={{ marginBottom: "1.5rem", textAlign: "center" }}>
         <h1 style={{ fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 700, color: PRO_STYLES.text }}>
           Pro
         </h1>
@@ -265,6 +280,7 @@ export default function ProPage() {
           flexWrap: "wrap",
           gap: "0.5rem",
           marginBottom: "1.5rem",
+          justifyContent: "center",
         }}
       >
         {TABS.map((t) => (
@@ -767,14 +783,100 @@ export default function ProPage() {
         </p>
       )}
 
-      {/* Bottom gallery placeholder */}
+      {/* История — последние картинки */}
       <section style={{ maxWidth: "64rem", margin: "2rem auto 0" }}>
-        <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "0.75rem", color: PRO_STYLES.text }}>
-          История
-        </h2>
-        <p style={{ color: PRO_STYLES.textSoft, fontSize: "0.9rem" }}>
-          Сохранённые результаты можно посмотреть в <Link href="/gallery" style={{ color: PRO_STYLES.accent }}>галерее</Link>.
-        </p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", flexWrap: "wrap", gap: "0.5rem" }}>
+          <h2 style={{ fontSize: "1.1rem", fontWeight: 600, margin: 0, color: PRO_STYLES.text }}>
+            История
+          </h2>
+          <Link href="/gallery" style={{ fontSize: "0.9rem", color: PRO_STYLES.accent }}>
+            Вся галерея →
+          </Link>
+        </div>
+        {gallery.length === 0 ? (
+          <p style={{ color: PRO_STYLES.textSoft, fontSize: "0.9rem", margin: 0 }}>
+            Сохранённые результаты появятся здесь и в <Link href="/gallery" style={{ color: PRO_STYLES.accent }}>галерее</Link>.
+          </p>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
+              gap: "0.75rem",
+            }}
+          >
+            {gallery.slice(0, 12).map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  borderRadius: "0.75rem",
+                  overflow: "hidden",
+                  border: `1px solid ${PRO_STYLES.border}`,
+                  background: PRO_STYLES.panel,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: "block", flex: "0 0 auto" }}
+                >
+                  <img
+                    src={item.url}
+                    alt=""
+                    style={{
+                      width: "100%",
+                      aspectRatio: "1",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                </a>
+                {item.text && (
+                  <div style={{ padding: "0.35rem 0.4rem", fontSize: "0.7rem", color: PRO_STYLES.textSoft, minHeight: 0 }}>
+                    <p
+                      style={{
+                        margin: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical" as const,
+                        lineHeight: 1.25,
+                      }}
+                    >
+                      {item.text}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(item.text!).then(() => {
+                          setCopiedId(item.id);
+                          setTimeout(() => setCopiedId(null), 1500);
+                        });
+                      }}
+                      style={{
+                        marginTop: "0.2rem",
+                        padding: "0.15rem 0.3rem",
+                        fontSize: "0.65rem",
+                        border: `1px solid ${PRO_STYLES.border}`,
+                        borderRadius: "4px",
+                        background: "transparent",
+                        color: PRO_STYLES.text,
+                        fontFamily: "inherit",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {copiedId === item.id ? "Скопировано" : "Копировать"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );

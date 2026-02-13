@@ -12,7 +12,7 @@ type AppNavProps = {
 };
 
 const NAV_ITEMS: { path: string; label: string; page: AppNavPage }[] = [
-  { path: "/", label: "nanphoto", page: "main" },
+  { path: "/", label: "Nanphoto", page: "main" },
   { path: "/pro", label: "Pro", page: "pro" },
   { path: "/thermal", label: "Термопринтер", page: "thermal" },
   { path: "/gallery", label: "Галерея", page: "gallery" },
@@ -22,10 +22,9 @@ export default function AppNav({ authRequired, currentPage, linkColor = "#7c3aed
   return (
     <nav
       style={{
-        display: "flex",
-        flexWrap: "wrap",
+        display: "grid",
+        gridTemplateColumns: "1fr auto 1fr",
         alignItems: "center",
-        justifyContent: "center",
         gap: "0.5rem 1.25rem",
         padding: "0.5rem 0",
         marginBottom: "0.5rem",
@@ -34,57 +33,61 @@ export default function AppNav({ authRequired, currentPage, linkColor = "#7c3aed
         fontSize: "0.95rem",
       }}
     >
-      {NAV_ITEMS.map(({ path, label, page }) => {
-        const isCurrent = currentPage === page;
-        const color = isCurrent ? "currentColor" : linkColor;
-        return isCurrent ? (
-          <span
-            key={path}
+      <div style={{ minWidth: 0 }} />
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem 1.25rem", flexWrap: "wrap", justifyContent: "center" }}>
+        {NAV_ITEMS.map(({ path, label, page }) => {
+          const isCurrent = currentPage === page;
+          const color = isCurrent ? "currentColor" : linkColor;
+          return isCurrent ? (
+            <span
+              key={path}
+              style={{
+                color,
+                fontWeight: 600,
+                opacity: 0.9,
+              }}
+            >
+              {label}
+            </span>
+          ) : (
+            <Link
+              key={path}
+              href={path}
+              style={{
+                color,
+                textDecoration: "none",
+                fontWeight: 500,
+              }}
+            >
+              {label}
+            </Link>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        {authRequired && (
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+              window.location.href = "/";
+            }}
             style={{
-              color,
-              fontWeight: 600,
-              opacity: 0.9,
+              padding: "0.35rem 0.65rem",
+              borderRadius: "0.5rem",
+              border: "1px solid rgba(0,0,0,0.15)",
+              background: "transparent",
+              color: "inherit",
+              opacity: 0.8,
+              fontFamily: "inherit",
+              fontSize: "0.8rem",
+              cursor: "pointer",
             }}
           >
-            {label}
-          </span>
-        ) : (
-          <Link
-            key={path}
-            href={path}
-            style={{
-              color,
-              textDecoration: "none",
-              fontWeight: 500,
-            }}
-          >
-            {label}
-          </Link>
-        );
-      })}
-      {authRequired && (
-        <button
-          type="button"
-          onClick={async () => {
-            await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-            window.location.href = "/";
-          }}
-          style={{
-            marginLeft: "auto",
-            padding: "0.35rem 0.65rem",
-            borderRadius: "0.5rem",
-            border: "1px solid rgba(0,0,0,0.15)",
-            background: "transparent",
-            color: "inherit",
-            opacity: 0.8,
-            fontFamily: "inherit",
-            fontSize: "0.8rem",
-            cursor: "pointer",
-          }}
-        >
-          Выйти
-        </button>
-      )}
+            Выйти
+          </button>
+        )}
+      </div>
     </nav>
   );
 }
