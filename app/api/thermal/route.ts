@@ -10,6 +10,9 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GE
 const BASE_PROMPT =
   "Convert this image to black and white line art suitable for thermal printer. High contrast monochrome. No gray tones, only pure black and white. Isolated subject only, centered composition, compact layout optimized for small thermal printer paper. Vector-style edges, sharp crisp boundaries. Sticker-style cut-out, no shadows, flat design, ready for printing.";
 
+const CLEAN_WATERMARKS_PROMPT =
+  "Inpaint and reconstruct all watermarked areas, seamless removal with no traces, remove transparent overlays and semi-transparent text, delete QR codes barcodes date stamps and metadata, perfectly clean image, then convert to thermal printer format: pure black and white line art, thick bold outlines, remove background completely, isolated subject centered, compact layout, high contrast monochrome, sticker-style, ready for printing.";
+
 type CategoryId = "portrait" | "objects" | "logos" | "";
 const CATEGORY_ADDITIONS: Record<CategoryId, string> = {
   portrait: " Focus on face and shoulders, clear facial features, portrait-optimized line art.",
@@ -24,9 +27,11 @@ function buildPrompt(opts: {
   detailLevel: string;
   outlineThickness: string;
   backgroundRemoval: boolean;
+  cleanWatermarks: boolean;
   paperSize: string;
 }): string {
-  const parts: string[] = [BASE_PROMPT];
+  const base = opts.cleanWatermarks ? CLEAN_WATERMARKS_PROMPT : BASE_PROMPT;
+  const parts: string[] = [base];
 
   if (opts.category && CATEGORY_ADDITIONS[opts.category as CategoryId]) {
     parts.push(CATEGORY_ADDITIONS[opts.category as CategoryId]);
@@ -89,6 +94,7 @@ export async function POST(request: NextRequest) {
       detailLevel = "",
       outlineThickness = "",
       backgroundRemoval = true,
+      cleanWatermarks = true,
       paperSize = "",
     } = body as {
       image?: string;
@@ -98,6 +104,7 @@ export async function POST(request: NextRequest) {
       detailLevel?: string;
       outlineThickness?: string;
       backgroundRemoval?: boolean;
+      cleanWatermarks?: boolean;
       paperSize?: string;
     };
 
@@ -111,6 +118,7 @@ export async function POST(request: NextRequest) {
       detailLevel: detailLevel || "",
       outlineThickness: outlineThickness || "",
       backgroundRemoval: !!backgroundRemoval,
+      cleanWatermarks: !!cleanWatermarks,
       paperSize: paperSize || "",
     });
 

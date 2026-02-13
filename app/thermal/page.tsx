@@ -97,6 +97,7 @@ export default function ThermalPage() {
   const [detailLevel, setDetailLevel] = useState<string>("medium");
   const [outlineThickness, setOutlineThickness] = useState<string>("bold");
   const [backgroundRemoval, setBackgroundRemoval] = useState(true);
+  const [cleanWatermarks, setCleanWatermarks] = useState(true);
   const [paperSize, setPaperSize] = useState<string>("58mm");
   const [result, setResult] = useState<{ image: string; mimeType: string; promptUsed: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -182,6 +183,7 @@ export default function ThermalPage() {
           detailLevel,
           outlineThickness,
           backgroundRemoval,
+          cleanWatermarks,
           paperSize,
         }),
       });
@@ -440,6 +442,14 @@ export default function ThermalPage() {
               onChange={(e) => setBackgroundRemoval(e.target.checked)}
             />
             Background Removal
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={cleanWatermarks}
+              onChange={(e) => setCleanWatermarks(e.target.checked)}
+            />
+            Clean watermarks / QR / metadata
           </label>
           <label style={{ fontSize: "0.85rem", color: THERMAL_COLORS.textSoft }}>
             Paper Size
