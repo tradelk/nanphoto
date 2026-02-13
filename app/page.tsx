@@ -556,7 +556,7 @@ export default function Home() {
         </div>
         {gallery.length === 0 ? (
           <p style={{ color: "var(--text-soft)", fontSize: "0.9rem", margin: 0 }}>
-            Пока пусто. Картинки сохраняются на сервере (до 40 шт.).
+            Пока пусто. Картинки сохраняются на сервере (до 100 шт.).
           </p>
         ) : (
           <div

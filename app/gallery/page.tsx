@@ -85,7 +85,7 @@ export default function GalleryPage() {
           Галерея
         </h1>
         <p style={{ color: "var(--text-soft)", marginTop: "0.25rem" }}>
-          Последние 40 сгенерированных картинок
+          Последние 100 сгенерированных картинок
         </p>
         <Link
           href="/"

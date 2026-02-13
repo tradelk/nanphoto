@@ -5,7 +5,7 @@ import { getGalleryItems, addGalleryItem } from "@/lib/db";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_ITEMS = 40;
+const MAX_ITEMS = 100;
 
 export type GalleryItem = {
   id: string;

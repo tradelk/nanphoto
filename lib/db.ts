@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 
-const MAX_ITEMS = 40;
+const MAX_ITEMS = 100;
 
 export type GalleryRow = {
   id: string;
