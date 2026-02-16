@@ -64,7 +64,7 @@ export default function ProPage() {
   // Edit
   const [editImage, setEditImage] = useState<File | null>(null);
   const [editPreviewUrl, setEditPreviewUrl] = useState<string | null>(null);
-  const [editPreset, setEditPreset] = useState<string>("replace-background");
+  const [editPreset, setEditPreset] = useState<string>("");
   const [editDetails, setEditDetails] = useState("");
   const editInputRef = useRef<HTMLInputElement>(null);
 
@@ -509,7 +509,7 @@ export default function ProPage() {
               >
                 {editImage ? editImage.name : "Загрузить изображение"}
               </button>
-              <div style={{ fontSize: "0.85rem", color: PRO_STYLES.textSoft, marginBottom: "0.5rem" }}>Preset</div>
+              <div style={{ fontSize: "0.85rem", color: PRO_STYLES.textSoft, marginBottom: "0.5rem" }}>Preset (необязательно)</div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
                 {[
                   { id: "replace-background", label: "Replace Background" },

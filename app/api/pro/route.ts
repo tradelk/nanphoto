@@ -223,8 +223,8 @@ export async function POST(request: NextRequest) {
 
     if (mode === "edit") {
       const { image, mimeType, preset, details } = body;
-      if (!image || !preset) {
-        return NextResponse.json({ error: "Нужно изображение и тип редактирования." }, { status: 400 });
+      if (!image) {
+        return NextResponse.json({ error: "Нужно изображение." }, { status: 400 });
       }
       const templates: Record<string, string> = {
         "replace-background": `Replace the background with ${details || "a new background"}, keep the main subject unchanged, seamless integration, natural lighting match`,
@@ -233,7 +233,12 @@ export async function POST(request: NextRequest) {
         "add-object": `Add ${details || "the described object"} to the image, natural placement, consistent lighting and perspective`,
         "change-style": `Change the style of the image: ${details || "apply the new style"}, coherent result, high quality`,
       };
-      let editPrompt = templates[preset] || details || "Edit this image as requested.";
+      const presetStr = typeof preset === "string" ? preset.trim() : "";
+      let editPrompt = presetStr && templates[presetStr]
+        ? templates[presetStr]
+        : (typeof details === "string" && details.trim()
+          ? `Edit this image according to the following: ${details.trim()}. High quality, coherent result.`
+          : "Edit this image as requested. Improve or refine while keeping the main content.");
       const detailStr = typeof details === "string" ? details : "";
       if (detailStr && promptImpliesTextOnImage(detailStr)) {
         const corrected = await getCorrectedTextForImage(apiKey, detailStr);
