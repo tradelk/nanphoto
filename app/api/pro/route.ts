@@ -165,18 +165,41 @@ export async function POST(request: NextRequest) {
         minimalist: "minimalist",
       };
       const styleStr = styleMap[style] || "editorial";
-      let promptText = `Create an infographic about ${topic}.`;
-      if (metrics) promptText += ` Include key data and metrics: ${metrics}.`;
+
+      let promptForImage = `Create an infographic about ${topic}.`;
+      if (metrics) promptForImage += ` Include key data and metrics: ${metrics}.`;
+
       if (useGoogleSearch) {
-        promptText += ` Use up-to-date information. Find latest data to visualize.`;
+        // Модель для картинок не поддерживает Google Search — сначала получаем актуальные данные текстовой моделью
+        const searchModel = "gemini-2.5-flash";
+        const searchUrl = `${GEMINI_BASE}/${searchModel}:generateContent`;
+        const searchPrompt = `Topic for infographic: ${topic}.${metrics ? ` Focus on: ${metrics}.` : ""} Using current/recent data, list the most important facts, numbers, and points to show on an infographic. Be concise: 5–10 bullet points with key figures. Output in English, facts only.`;
+        const searchRes = await fetch(`${searchUrl}?key=${encodeURIComponent(apiKey)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: searchPrompt }] }],
+            tools: [{ googleSearch: {} }],
+            generationConfig: { maxOutputTokens: 1024 },
+          }),
+        });
+        const searchData = await searchRes.json().catch(() => ({}));
+        if (searchRes.ok && searchData?.candidates?.[0]?.content?.parts) {
+          const searchText = searchData.candidates[0].content.parts
+            .map((p: { text?: string }) => p?.text ?? "")
+            .join("")
+            .trim();
+          if (searchText) {
+            promptForImage += ` Use this up-to-date content for the infographic:\n${searchText}`;
+          }
+        }
       }
-      promptText += ` Style: ${styleStr}. Compress information into visual format, clear typography, data visualization with charts and icons, organized layout, professional design, high readability.`;
-      const tools = useGoogleSearch ? [{ googleSearch: {} }] : undefined;
-      const model = "gemini-2.5-flash-image";
-      const result = await callGemini(apiKey, model, {
-        contents: [{ role: "user", parts: [{ text: promptText }] }],
+
+      promptForImage += ` Style: ${styleStr}. Compress information into visual format, clear typography, data visualization with charts and icons, organized layout, professional design, high readability.`;
+      const imageModel = "gemini-2.5-flash-image";
+      const result = await callGemini(apiKey, imageModel, {
+        contents: [{ role: "user", parts: [{ text: promptForImage }] }],
         generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
-        tools,
       });
       if (!result.imageBase64) return NextResponse.json({ error: "Модель не вернула изображение." }, { status: 500 });
       return NextResponse.json({ image: result.imageBase64, mimeType: result.mimeType, text: result.text });
