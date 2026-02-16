@@ -35,3 +35,20 @@ npm run dev
 2. В **Environment Variables** задайте `GEMINI_API_KEY` и `DATABASE_URL` (Neon connection string), чтобы работала галерея.
 
 Ключи хранятся только в переменных окружения, в коде их нет.
+
+## Пуш в GitHub
+
+Чтобы `git push` работал из этого окружения, нужен [Personal Access Token (PAT)](https://github.com/settings/tokens) с правом `repo`.
+
+**Вариант 1 — переменная окружения (удобно для терминала):**
+```bash
+export GITHUB_TOKEN=ghp_ваш_токен
+git push origin main
+```
+
+**Вариант 2 — файл (удобно, чтобы не вводить каждый раз):**
+1. В корне репозитория создайте файл `.github_token`.
+2. В одну строку вставьте только токен (без `export` и кавычек).
+3. Выполните: `git push origin main`.
+
+Файл `.github_token` добавлен в `.gitignore` и не попадёт в коммиты. Credential helper настроен в `scripts/git-credential-github.sh`.
