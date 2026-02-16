@@ -24,7 +24,7 @@ const URL_REGEX = /https?:\/\/[^\s<>"']+/g;
 
 function extractUrls(text: string): string[] {
   const matches = text.match(URL_REGEX) ?? [];
-  return [...new Set(matches)];
+  return Array.from(new Set(matches));
 }
 
 function escapeHtml(s: string): string {
