@@ -14,20 +14,39 @@ const AISHKA_STYLES = {
 };
 
 const MODEL_OPTIONS = [
-  { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
-  { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-  { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
   { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  { id: "gemini-2.5-flash-preview-05-20", label: "Gemini 2.5 Flash (preview)" },
   { id: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
 ];
 
 type ModelStatus = { id: string; label: string; listed: boolean; works: boolean };
 
+const URL_REGEX = /https?:\/\/[^\s<>"']+/g;
+
+function extractUrls(text: string): string[] {
+  const matches = text.match(URL_REGEX) ?? [];
+  return [...new Set(matches)];
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function textWithLinks(text: string): string {
+  const escaped = escapeHtml(text).replace(/\n/g, "<br />");
+  return escaped.replace(URL_REGEX, (url) => {
+    const safe = escapeHtml(url);
+    return `<a href="${safe}" target="_blank" rel="noopener noreferrer">${safe}</a>`;
+  });
+}
+
 export default function AishkaPage() {
   const { authRequired } = useAuthRequired();
   const [query, setQuery] = useState("");
-  const [model, setModel] = useState("gemini-1.5-flash");
+  const [model, setModel] = useState("gemini-2.5-flash");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -367,14 +386,45 @@ export default function AishkaPage() {
             <div
               style={{
                 minHeight: "4rem",
-                whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
                 fontSize: "0.95rem",
                 lineHeight: 1.6,
                 color: AISHKA_STYLES.text,
               }}
             >
-              {loading && !response ? "Ждём ответ…" : response}
+              {loading && !response ? (
+                "Ждём ответ…"
+              ) : (
+                <>
+                  <div
+                    style={{ whiteSpace: "pre-wrap" }}
+                    dangerouslySetInnerHTML={{
+                      __html: textWithLinks(response),
+                    }}
+                  />
+                  {extractUrls(response).length > 0 && (
+                    <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: `1px solid ${AISHKA_STYLES.border}` }}>
+                      <div style={{ fontWeight: 600, fontSize: "0.9rem", marginBottom: "0.5rem", color: AISHKA_STYLES.text }}>
+                        Источники
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "0.9rem", lineHeight: 1.7 }}>
+                        {extractUrls(response).map((url) => (
+                          <li key={url}>
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: AISHKA_STYLES.accent }}
+                            >
+                              {url}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         )}

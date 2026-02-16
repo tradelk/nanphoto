@@ -12,11 +12,11 @@ type AppNavProps = {
 };
 
 const NAV_ITEMS: { path: string; label: string; page: AppNavPage }[] = [
+  { path: "/aishka", label: "Аишка", page: "aishka" },
   { path: "/", label: "Nanphoto", page: "main" },
   { path: "/pro", label: "Pro", page: "pro" },
   { path: "/thermal", label: "Термопринтер", page: "thermal" },
   { path: "/gallery", label: "Галерея", page: "gallery" },
-  { path: "/aishka", label: "Аишка", page: "aishka" },
 ];
 
 export default function AppNav({ authRequired, currentPage, linkColor = "#7c3aed" }: AppNavProps) {

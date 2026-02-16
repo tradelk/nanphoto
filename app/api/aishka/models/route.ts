@@ -4,13 +4,9 @@ import { isAuthenticated } from "@/lib/auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Кандидаты для Аишки: текстовые модели. */
+/** Кандидаты для Аишки: только 2.5 и 3 Flash. */
 const CANDIDATE_MODELS = [
-  { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
-  { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-  { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
   { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  { id: "gemini-2.5-flash-preview-05-20", label: "Gemini 2.5 Flash (preview)" },
   { id: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
 ];
 
