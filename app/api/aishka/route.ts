@@ -35,6 +35,11 @@ const ALLOWED_MODELS = new Set([
   "gemini-3-flash-preview",
 ]);
 
+type GeminiErrorResponse = { error?: { message?: string } };
+type GeminiCandidate = { finishReason?: string; content?: { parts?: Array<{ text?: string }> } };
+type GeminiSuccessResponse = { candidates?: GeminiCandidate[] };
+type GeminiResponse = GeminiErrorResponse & GeminiSuccessResponse;
+
 export async function POST(request: NextRequest) {
   if (!isAuthenticated(request)) {
     return NextResponse.json({ error: "Требуется авторизация" }, { status: 401 });
@@ -74,9 +79,9 @@ export async function POST(request: NextRequest) {
     });
 
     const raw = await res.text();
-    let data: { error?: { message?: string }; candidates?: unknown[] };
+    let data: GeminiResponse;
     try {
-      data = raw.length > 0 ? JSON.parse(raw) : {};
+      data = (raw.length > 0 ? JSON.parse(raw) : {}) as GeminiResponse;
     } catch {
       const snippet = raw.startsWith("<") ? "Сервер вернул HTML вместо JSON (модель может быть недоступна или неверный URL)." : raw.slice(0, 300);
       return NextResponse.json(
