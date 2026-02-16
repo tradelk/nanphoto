@@ -5,9 +5,96 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const TEXT_MODEL = "gemini-2.5-flash";
 
 function getUrl(model: string) {
   return `${GEMINI_BASE}/${model}:generateContent`;
+}
+
+/** Проверяет, подразумевает ли запрос надписи/текст на изображении (рус. или англ.). */
+function promptImpliesTextOnImage(prompt: string): boolean {
+  if (!prompt || typeof prompt !== "string") return false;
+  const lower = prompt.toLowerCase().trim();
+  const keywords = [
+    "надпись", "надписи", "с надписью", "с текстом", "текст на", "подпись", "подписи",
+    "слова", "слово", "цитата", "слоган", "лозунг", "caption", "label", "labels",
+    "text on", "with text", "with the text", "words on", "quote on", "saying",
+    "написать", "изобразить текст", "отобразить текст", "вывести текст",
+    "буквы", "надпись на", "текст в", "подпись под",
+  ];
+  return keywords.some((k) => lower.includes(k));
+}
+
+/**
+ * Получает от текстовой модели исправленный вариант текста для надписи на картинке.
+ * Возвращает null, если надписи не требуется или не удалось извлечь.
+ */
+async function getCorrectedTextForImage(apiKey: string, userPrompt: string): Promise<string | null> {
+  const url = `${GEMINI_BASE}/${TEXT_MODEL}:generateContent`;
+  const systemPrompt = `You are a spelling/grammar checker for text that will be rendered on images.
+Task: From the user's image generation request, extract the exact phrase(s) or word(s) that should appear ON the image (sign, label, caption, slogan, quote). 
+Correct spelling and grammar for Russian and English. Preserve the meaning and style.
+Output ONLY the corrected text that must be drawn on the image, nothing else. If the request does not specify any text to display on the image, reply with exactly: NONE.`;
+
+  try {
+    const res = await fetch(`${url}?key=${encodeURIComponent(apiKey)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nUser request: ${userPrompt}` }] }],
+        generationConfig: { maxOutputTokens: 256, temperature: 0.2 },
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.candidates?.[0]?.content?.parts) return null;
+    const text = data.candidates[0].content.parts
+      .map((p: { text?: string }) => p?.text ?? "")
+      .join("")
+      .trim();
+    if (!text || text.toUpperCase() === "NONE") return null;
+    return text;
+  } catch {
+    return null;
+  }
+}
+
+/** Жёсткое ограничение: модель не добавляет свой текст и строго придерживается указанного. */
+const IMAGE_TEXT_STRICT_INSTRUCTION =
+  "\n\nSTRICT RULE — text on image: Do not add any captions, labels, slogans, or other text unless the request explicitly asks for specific text. If you render any text (Russian or English), it must be exactly and only the text specified in the instructions above—no variations, no additions, no extra words.";
+
+/** Добавляет в промпт для изображения инструкцию по точному отображению проверенного текста. */
+function appendCorrectedTextInstruction(imagePrompt: string, correctedText: string): string {
+  return `${imagePrompt}\n\nCRITICAL — text on image: You MUST display exactly this text on the image with correct spelling and grammar. Render it accurately, do not alter or paraphrase: "${correctedText}"`;
+}
+
+/** Исправляет орфографию и грамматику одной фразы (для режима text-rendering). */
+async function correctSpellingOnly(apiKey: string, text: string): Promise<string> {
+  if (!text || !text.trim()) return text;
+  const url = `${GEMINI_BASE}/${TEXT_MODEL}:generateContent`;
+  try {
+    const res = await fetch(`${url}?key=${encodeURIComponent(apiKey)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          role: "user",
+          parts: [{
+            text: `Correct spelling and grammar for the following text (Russian or English). Output ONLY the corrected text, nothing else:\n\n${text.trim()}`,
+          }],
+        }],
+        generationConfig: { maxOutputTokens: 128, temperature: 0.1 },
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.candidates?.[0]?.content?.parts) return text;
+    const corrected = data.candidates[0].content.parts
+      .map((p: { text?: string }) => p?.text ?? "")
+      .join("")
+      .trim();
+    return corrected || text;
+  } catch {
+    return text;
+  }
 }
 
 type ProMode = "text-to-image" | "image-to-image" | "edit" | "infographic" | "text-rendering";
@@ -82,10 +169,15 @@ export async function POST(request: NextRequest) {
       const styleStr = styleHint[style] || "";
       const ratioStr = ratioHint[aspectRatio] || "";
       const extras = [styleStr, ratioStr].filter(Boolean);
-      const fullPrompt =
+      let fullPrompt =
         extras.length > 0
           ? `Уточнения: ${extras.join(", ")}.\n\nОписание изображения: ${prompt}\n\nСгенерируй изображение по этому описанию.`
           : `Сгенерируй изображение по описанию: ${prompt}`;
+      if (promptImpliesTextOnImage(prompt)) {
+        const corrected = await getCorrectedTextForImage(apiKey, prompt);
+        if (corrected) fullPrompt = appendCorrectedTextInstruction(fullPrompt, corrected);
+      }
+      fullPrompt += IMAGE_TEXT_STRICT_INSTRUCTION;
       const model = userModel === "imagen-4" ? "gemini-2.5-flash-image" : defaultModel;
       const result = await callGemini(apiKey, model, {
         contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
@@ -111,10 +203,15 @@ export async function POST(request: NextRequest) {
       refs.forEach((data: string, i: number) => {
         parts.push({ inlineData: { mimeType: mimeTypes[i] || "image/png", data } });
       });
-      const promptText =
+      let promptText =
         refs.length >= 2
           ? `Combine the style of image 1 with the composition of image 2, create: ${prompt}, seamless blend, coherent result, high quality. Reference influence strength: ${strength}%.`
           : `Using this reference image, create: ${prompt}, coherent result, high quality. Reference influence: ${strength}%.`;
+      if (promptImpliesTextOnImage(prompt)) {
+        const corrected = await getCorrectedTextForImage(apiKey, prompt);
+        if (corrected) promptText = appendCorrectedTextInstruction(promptText, corrected);
+      }
+      promptText += IMAGE_TEXT_STRICT_INSTRUCTION;
       parts.push({ text: promptText });
       const result = await callGemini(apiKey, imageModel, {
         contents: [{ role: "user", parts }],
@@ -136,7 +233,13 @@ export async function POST(request: NextRequest) {
         "add-object": `Add ${details || "the described object"} to the image, natural placement, consistent lighting and perspective`,
         "change-style": `Change the style of the image: ${details || "apply the new style"}, coherent result, high quality`,
       };
-      const editPrompt = templates[preset] || details || "Edit this image as requested.";
+      let editPrompt = templates[preset] || details || "Edit this image as requested.";
+      const detailStr = typeof details === "string" ? details : "";
+      if (detailStr && promptImpliesTextOnImage(detailStr)) {
+        const corrected = await getCorrectedTextForImage(apiKey, detailStr);
+        if (corrected) editPrompt = appendCorrectedTextInstruction(editPrompt, corrected);
+      }
+      editPrompt += IMAGE_TEXT_STRICT_INSTRUCTION;
       const result = await callGemini(apiKey, imageModel, {
         contents: [
           {
@@ -195,8 +298,8 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      promptForImage += ` Style: ${styleStr}. Compress information into visual format, clear typography, data visualization with charts and icons, organized layout, professional design, high readability.`;
-      const imageModel = "gemini-2.5-flash-image";
+      promptForImage += ` Style: ${styleStr}. Compress information into visual format, clear typography, data visualization with charts and icons, organized layout, professional design, high readability. Any text or labels on the infographic must have correct spelling and grammar (Russian and English).`;
+      promptForImage += IMAGE_TEXT_STRICT_INSTRUCTION;
       const result = await callGemini(apiKey, imageModel, {
         contents: [{ role: "user", parts: [{ text: promptForImage }] }],
         generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
@@ -210,6 +313,7 @@ export async function POST(request: NextRequest) {
       if (!exactText) {
         return NextResponse.json({ error: "Нужен текст для отображения." }, { status: 400 });
       }
+      const exactTextCorrected = await correctSpellingOnly(apiKey, exactText);
       const styleMap: Record<string, string> = {
         bold: "bold",
         calligraphy: "calligraphy",
@@ -218,7 +322,8 @@ export async function POST(request: NextRequest) {
         handwritten: "handwritten",
       };
       const styleStr = styleMap[textStyle] || "bold";
-      const promptText = `Generate image with accurate text rendering: "${exactText}", text style: ${styleStr}, language: ${language === "ru" ? "Russian" : "English"}, context: ${context || "clean background"}. Clear legible typography, precise letter spacing, high-fidelity text, no spelling errors, professional design.`;
+      let promptText = `Generate image with accurate text rendering: "${exactTextCorrected}", text style: ${styleStr}, language: ${language === "ru" ? "Russian" : "English"}, context: ${context || "clean background"}. Clear legible typography, precise letter spacing, high-fidelity text, render EXACTLY this text with correct spelling, professional design.`;
+      promptText += IMAGE_TEXT_STRICT_INSTRUCTION;
       const result = await callGemini(apiKey, imageModel, {
         contents: [{ role: "user", parts: [{ text: promptText }] }],
         generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
