@@ -18,8 +18,6 @@ const MODEL_OPTIONS = [
   { id: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
 ];
 
-type ModelStatus = { id: string; label: string; listed: boolean; works: boolean };
-
 const URL_REGEX = /https?:\/\/[^\s<>"']+/g;
 
 function extractUrls(text: string): string[] {
@@ -51,9 +49,6 @@ export default function AishkaPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [modelCheck, setModelCheck] = useState<ModelStatus[] | null>(null);
-  const [modelCheckLoading, setModelCheckLoading] = useState(false);
-  const [modelCheckError, setModelCheckError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,22 +85,6 @@ export default function AishkaPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  };
-
-  const handleCheckModels = async () => {
-    setModelCheckError(null);
-    setModelCheck(null);
-    setModelCheckLoading(true);
-    try {
-      const res = await fetch("/api/aishka/models", { credentials: "include" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Ошибка проверки");
-      setModelCheck(data.available ?? []);
-    } catch (err) {
-      setModelCheckError(err instanceof Error ? err.message : "Ошибка");
-    } finally {
-      setModelCheckLoading(false);
-    }
   };
 
   return (
@@ -192,23 +171,6 @@ export default function AishkaPage() {
                   ))}
                 </select>
               </label>
-              <button
-                type="button"
-                onClick={handleCheckModels}
-                disabled={modelCheckLoading}
-                style={{
-                  padding: "0.5rem 1rem",
-                  borderRadius: "0.5rem",
-                  border: `1px solid ${AISHKA_STYLES.border}`,
-                  background: "transparent",
-                  color: AISHKA_STYLES.accent,
-                  fontFamily: "inherit",
-                  fontSize: "0.9rem",
-                  cursor: modelCheckLoading ? "not-allowed" : "pointer",
-                }}
-              >
-                {modelCheckLoading ? "Проверяю…" : "Проверить модели"}
-              </button>
             </div>
 
             <label
@@ -288,40 +250,6 @@ export default function AishkaPage() {
             </div>
           </div>
         </form>
-
-        {(modelCheck !== null || modelCheckError) && (
-          <div
-            style={{
-              background: AISHKA_STYLES.card,
-              borderRadius: "0.75rem",
-              border: `1px solid ${AISHKA_STYLES.border}`,
-              padding: "1rem",
-            }}
-          >
-            <h3 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.5rem", color: AISHKA_STYLES.text }}>
-              Доступность моделей по вашему API
-            </h3>
-            {modelCheckError && (
-              <p style={{ color: "#991b1b", fontSize: "0.9rem", marginBottom: "0.5rem" }}>{modelCheckError}</p>
-            )}
-            {modelCheck && modelCheck.length > 0 && (
-              <ul style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "0.9rem", lineHeight: 1.8 }}>
-                {modelCheck.map((m) => (
-                  <li key={m.id}>
-                    <strong>{m.label}</strong>{" "}
-                    {m.works ? (
-                      <span style={{ color: "#15803d" }}>✓ доступна</span>
-                    ) : m.listed ? (
-                      <span style={{ color: "#ca8a04" }}>в списке, тест не прошла</span>
-                    ) : (
-                      <span style={{ color: AISHKA_STYLES.textSoft }}>нет в API</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
 
         {error && (
           <div

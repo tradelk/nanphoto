@@ -73,14 +73,20 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-    const contentType = res.headers.get("content-type") ?? "";
-    const isJson = contentType.includes("application/json");
-    const data = isJson
-      ? await res.json()
-      : { error: { message: (await res.text()) || `HTTP ${res.status}` } };
+    const raw = await res.text();
+    let data: { error?: { message?: string }; candidates?: unknown[] };
+    try {
+      data = raw.length > 0 ? JSON.parse(raw) : {};
+    } catch {
+      const snippet = raw.startsWith("<") ? "Сервер вернул HTML вместо JSON (модель может быть недоступна или неверный URL)." : raw.slice(0, 300);
+      return NextResponse.json(
+        { error: res.ok ? snippet : (snippet || `HTTP ${res.status}`) },
+        { status: res.ok ? 500 : res.status }
+      );
+    }
 
     if (!res.ok) {
-      const errMsg = data?.error?.message ?? `HTTP ${res.status}`;
+      const errMsg = data?.error?.message ?? raw.slice(0, 200) ?? `HTTP ${res.status}`;
       return NextResponse.json({ error: errMsg }, { status: 500 });
     }
 
